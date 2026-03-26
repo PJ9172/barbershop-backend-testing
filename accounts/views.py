@@ -32,6 +32,9 @@ def send_register_otp(request):
 def register_user(request):
     data = request.data
 
+    if User.objects.filter(mobile_no=data["mobile_no"]).exists():
+        return Response({"error": "User already exists"}, status=400)
+
     if data["password"] != data["confirm_password"]:
         return Response({"error": "Passwords do not match"}, status=400)
 
