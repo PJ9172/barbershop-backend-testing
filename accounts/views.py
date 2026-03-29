@@ -111,3 +111,52 @@ def user_profile(request):
         "role_id": request.user.role.id if request.user.role else None,
         "role_name": request.user.role.name if request.user.role else None
     })
+
+
+#  send-reset-otp
+
+@api_view(['POST'])
+def send_reset_otp(request):
+    mobile = request.data.get("mobile_no")
+
+    if not mobile:
+        return Response({"error": "Mobile number required"}, status=400)
+
+    user = User.objects.filter(mobile_no=mobile).first()
+    if not user:
+        return Response({"error": "User not found"}, status=404)
+
+    otp = generate_otp()
+    save_otp(mobile, otp)
+
+    # send SMS
+    send_otp(mobile, otp)
+
+    print("RESET OTP:", otp)  # for testing
+
+    return Response({"message": "OTP sent for password reset"})
+
+
+#  reset-password
+
+@api_view(['POST'])
+def reset_password(request):
+    mobile = request.data.get("mobile_no")
+    otp = request.data.get("otp")
+    new_password = request.data.get("new_password")
+    confirm_password = request.data.get("confirm_password")
+
+    if new_password != confirm_password:
+        return Response({"error": "Passwords do not match"}, status=400)
+
+    if not validate_otp(mobile, otp):
+        return Response({"error": "Invalid or expired OTP"}, status=400)
+
+    user = User.objects.filter(mobile_no=mobile).first()
+    if not user:
+        return Response({"error": "User not found"}, status=404)
+
+    user.set_password(new_password)
+    user.save()
+
+    return Response({"message": "Password reset successful"})
