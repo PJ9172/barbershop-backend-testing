@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
+import requests
 from rest_framework import status
 from .models import User, Role
 from .otp_service import generate_otp, save_otp, validate_otp
@@ -72,9 +73,16 @@ def login_user(request):
 
     refresh = RefreshToken.for_user(user)
 
+    # headers = {
+    #     "authorization": "Bearer "+ refresh.access_token,
+    # }
+    # response = requests.get("https://barbershop-backend-testing.onrender.com/api/auth/profile", headers=headers)
+    # print(response.role_name)
+
     return Response({
         "access_token": str(refresh.access_token),
         "refresh_token": str(refresh),
+        # "role_name": response.role_name
     })
 
 
@@ -102,5 +110,8 @@ def user_profile(request):
     return Response({
         "mobile_no": request.user.mobile_no,
         "first_name": request.user.first_name,
-        "role": request.user.role.id if request.user.role else None
+        "last_name": request.user.last_name,
+        "date_joined": request.user.date_joined,
+        "role_id": request.user.role.id if request.user.role else None,
+        "role_name": request.user.role.name if request.user.role else None
     })
