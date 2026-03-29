@@ -73,16 +73,30 @@ def login_user(request):
 
     refresh = RefreshToken.for_user(user)
 
-    # headers = {
-    #     "authorization": "Bearer "+ refresh.access_token,
-    # }
-    # response = requests.get("https://barbershop-backend-testing.onrender.com/api/auth/profile", headers=headers)
-    # print(response.role_name)
+    headers = {
+        "Authorization": f"Bearer {str(refresh.access_token)}",
+    }
+    
+    # Call another API to get profile data
+    try:
+        response = requests.get("https://barbershop-backend-testing.onrender.com/api/auth/profile", headers=headers)
+        
+        # Raise an exception for bad status codes (4xx or 5xx)
+        response.raise_for_status()
+        
+        response_data = response.json()
+        role_name = response_data.get("role_name")
+        print("API Response:", response_data)
+        
+    except Exception as e:
+        print("Error calling external API:", e)
+        # Fallback to local user role if API call fails
+        role_name = user.role.name if user.role else None
 
     return Response({
         "access_token": str(refresh.access_token),
         "refresh_token": str(refresh),
-        # "role_name": response.role_name
+        "role_name": role_name
     })
 
 
