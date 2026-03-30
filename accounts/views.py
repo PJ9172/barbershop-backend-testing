@@ -2,7 +2,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
-import requests
 from rest_framework import status
 from .models import User, Role
 from .otp_service import generate_otp, save_otp, validate_otp
@@ -13,6 +12,9 @@ from .utils import send_otp
 @api_view(['POST'])
 def send_register_otp(request):
     mobile = request.data.get("mobile_no")
+
+    if User.objects.filter(mobile_no=mobile).exists():
+        return Response({"error": "User already exists"}, status=400)
 
     if not mobile:
         return Response({"error": "Mobile number required"}, status=400)

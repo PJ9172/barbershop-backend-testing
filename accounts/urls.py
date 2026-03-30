@@ -8,5 +8,5 @@ urlpatterns = [
     path('refresh/', refresh_token),
     path('profile/', user_profile),
     path('send-reset-otp/', send_reset_otp),
-path('reset-password/', reset_password),
+    path('reset-password/', reset_password),
 ]
