@@ -6,7 +6,7 @@ from .models import *
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsOwner])
+@permission_classes([IsAuthenticated, IsOwnerOrAdmin])
 def get_settings(request):
     settings_obj = BarberShopSettings.objects.first()
     if not settings_obj:
