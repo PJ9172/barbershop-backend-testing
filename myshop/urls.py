@@ -28,5 +28,8 @@ urlpatterns = [
     path('', home),
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
-    path('api/services/', include('barber.urls')),
+    path('api/services/', include('barber.service_urls')),
+    path('api/settings/', include('barber.settings_urls')),
+    path('api/settings/', include('barber.emergencyholiday_urls')),
+
 ]
