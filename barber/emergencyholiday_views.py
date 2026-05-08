@@ -36,14 +36,15 @@ def get_emergency_holiday(request):
 def save_emergency_holiday(request):
 
     data = request.data
+    holiday_data = data.get("emergency_holiday", {})
 
     EmergencyHoliday.objects.create(
-        enabled=data.get("enabled"),
+        enabled=holiday_data.get("enabled"),
 
-        start_date=data.get("start_date"),
-        end_date=data.get("end_date"),
+        start_date=holiday_data.get("start_date"),
+        end_date=holiday_data.get("end_date"),
 
-        reason=data.get("reason")
+        reason=holiday_data.get("reason")
     )
 
     return Response({
