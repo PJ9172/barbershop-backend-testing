@@ -28,11 +28,7 @@ class BarberShopSettings(models.Model):
 
     slot_duration = models.IntegerField(default=60)
 
-    week_holiday = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text="0=Monday ... 6=Sunday"
-    )
+    week_holiday = models.CharField(max_length=10)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
