@@ -36,11 +36,27 @@ class BarberShopSettings(models.Model):
         db_table = "barber_shop_settings"
 
 
+from datetime import timedelta
+
 class EmergencyHoliday(models.Model):
-    holiday_date = models.DateField(unique=True)
+
+    enabled = models.BooleanField(default=False)
+
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    total_days = models.IntegerField(editable=False)
+
     reason = models.CharField(max_length=255)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "emergency_holidays"
+
+    def save(self, *args, **kwargs):
+        self.total_days = (
+            self.end_date - self.start_date
+        ).days + 1
+
+        super().save(*args, **kwargs)

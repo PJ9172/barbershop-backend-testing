@@ -4,35 +4,68 @@ from accounts.permissions import *
 from rest_framework.response import Response
 from .models import *
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsOwnerOrAdmin])
-def get_holidays(request):
-    holidays = EmergencyHoliday.objects.all().order_by("holiday_date")
+def get_emergency_holiday(request):
+    emergencies = EmergencyHoliday.objects.filter(
+        enabled=True
+    ).order_by('-created_at')
 
     data = [
         {
-            "id": h.id,
-            "holiday_date": h.holiday_date,
-            "reason": h.reason
+            "id": emergency.id,
+            "enabled": emergency.enabled,
+            "start_date": emergency.start_date,
+            "end_date": emergency.end_date,
+            "total_days": emergency.total_days,
+            "reason": emergency.reason,
+            "created_date" : emergency.created_at,
         }
-        for h in holidays
+        for emergency in emergencies
     ]
 
-    return Response(data)
+    return Response({
+        "emergency_holiday": data
+    })
+
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsOwnerOrAdmin])
-def add_holidays(request):
+def save_emergency_holiday(request):
+
     data = request.data
-    date = data.get('holiday_date')
-    if EmergencyHoliday.objects.filter(holiday_date=date).first():
-        return Response({
-            'message' : 'This date already exits!!'
-        })
-    
+
     EmergencyHoliday.objects.create(
-        holiday_date = date,
-        reason = data.get('reason')
+        enabled=data.get("enabled"),
+
+        start_date=data.get("start_date"),
+        end_date=data.get("end_date"),
+
+        reason=data.get("reason")
     )
-    return Response({'message' : 'Emergency holiday added!!!'})
+
+    return Response({
+        "message": "Emergency holiday saved"
+    })
+
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsOwnerOrAdmin])
+def delete_emergency_holiday(request, id):
+
+    holiday = EmergencyHoliday.objects.filter(id=id).first()
+
+    if not holiday:
+        return Response(
+            {"error": "Holiday not found"},
+            status=404
+        )
+
+    holiday.delete()
+
+    return Response({
+        "message": "Holiday deleted successfully"
+    })
