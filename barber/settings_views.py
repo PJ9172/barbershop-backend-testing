@@ -4,6 +4,7 @@ from datetime import datetime
 from accounts.permissions import *
 from rest_framework.response import Response
 from .models import *
+import traceback
 
 
 # Helper function to handle conversion
@@ -29,10 +30,10 @@ def get_settings(request):
 
             "closing_time": format_time(settings_obj.closing_time) if settings_obj else None,
 
-            "weekly_holiday": settings_obj.weekly_holiday if settings_obj else None,
+            "week_holiday": settings_obj.week_holiday if settings_obj else None,
 
-            "slot_duration_minutes":
-                settings_obj.slot_duration_minutes if settings_obj else None,
+            "slot_duration":
+                settings_obj.slot_duration if settings_obj else None,
 
             "lunch_start_time":
                 format_time(settings_obj.lunch_start_time)
@@ -49,61 +50,81 @@ def get_settings(request):
 
 
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsOwnerOrAdmin])
 def save_settings(request):
+    try:
+        data = request.data
+        setting_data = data.get("setting", {})
+        emergency_data = data.get("emergency_holiday", {})
 
-    data = request.data
-    setting_data = data.get("setting", {})
+        settings_obj = BarberShopSettings.objects.first()
 
-    settings_obj = BarberShopSettings.objects.first()
+        opening = parse_time(setting_data.get("opening_time"))
+        closing = parse_time(setting_data.get("closing_time"))
 
-    opening = parse_time(setting_data.get("opening_time"))
-    closing = parse_time(setting_data.get("closing_time"))
-
-    lunch_start = parse_time(
-        setting_data.get("lunch_start_time")
-    )
-
-    lunch_end = parse_time(
-        setting_data.get("lunch_end_time")
-    )
-
-    if settings_obj:
-
-        settings_obj.opening_time = opening
-        settings_obj.closing_time = closing
-
-        settings_obj.weekly_holiday = (
-            setting_data.get("weekly_holiday")
+        lunch_start = parse_time(
+            setting_data.get("lunch_start_time")
         )
 
-        settings_obj.slot_duration_minutes = (
-            setting_data.get("slot_duration_minutes")
+        lunch_end = parse_time(
+            setting_data.get("lunch_end_time")
         )
 
-        settings_obj.lunch_start_time = lunch_start
-        settings_obj.lunch_end_time = lunch_end
+        if settings_obj:
 
-        settings_obj.save()
+            settings_obj.opening_time = opening
+            settings_obj.closing_time = closing
 
-    else:
+            settings_obj.week_holiday = (
+                setting_data.get("week_holiday")
+            )
 
-        settings_obj = BarberShopSettings.objects.create(
-            opening_time=opening,
-            closing_time=closing,
+            settings_obj.slot_duration = (
+                setting_data.get("slot_duration")
+            )
 
-            weekly_holiday=setting_data.get("weekly_holiday"),
+            settings_obj.lunch_start_time = lunch_start
+            settings_obj.lunch_end_time = lunch_end
 
-            slot_duration_minutes=setting_data.get(
-                "slot_duration_minutes"
-            ),
+            settings_obj.save()
 
-            lunch_start_time=lunch_start,
-            lunch_end_time=lunch_end
-        )
+        else:
 
-    return Response({
-        "message": "Settings saved successfully"
-    })
+            settings_obj = BarberShopSettings.objects.create(
+                opening_time=opening,
+                closing_time=closing,
+
+                week_holiday=setting_data.get(
+                    "week_holiday"
+                ),
+
+                slot_duration=setting_data.get(
+                    "slot_duration"
+                ),
+
+                lunch_start_time=lunch_start,
+                lunch_end_time=lunch_end
+            )
+
+        # Emergency Holiday
+        if emergency_data:
+            start_date = datetime.strptime(emergency_data.get("start_date"), "%Y-%m-%d").date()
+            end_date = datetime.strptime(emergency_data.get("end_date"), "%Y-%m-%d").date()
+
+            EmergencyHoliday.objects.create(
+                enabled=emergency_data.get("enabled", True),
+                start_date=start_date,
+                end_date=end_date,
+                reason=emergency_data.get("reason", "")
+            )
+
+        return Response({
+            "message": "Settings saved successfully"
+        })
+    except Exception as e:
+        print(traceback.format_exc())
+
+        return Response({
+            "error": str(e)
+        }, status=500)

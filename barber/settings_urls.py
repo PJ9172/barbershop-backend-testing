@@ -6,7 +6,6 @@ urlpatterns = [
     path('', get_settings),
     path('save/', save_settings),
     path('emergency-holiday/', get_emergency_holiday),
-    path('emergency-holiday/save', save_emergency_holiday),
     path('emergency-holiday/<id>/', delete_emergency_holiday)
 
 ]

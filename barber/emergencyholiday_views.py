@@ -30,29 +30,6 @@ def get_emergency_holiday(request):
     })
 
 
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, IsOwnerOrAdmin])
-def save_emergency_holiday(request):
-
-    data = request.data
-    holiday_data = data.get("emergency_holiday", {})
-
-    EmergencyHoliday.objects.create(
-        enabled=holiday_data.get("enabled"),
-
-        start_date=holiday_data.get("start_date"),
-        end_date=holiday_data.get("end_date"),
-
-        reason=holiday_data.get("reason")
-    )
-
-    return Response({
-        "message": "Emergency holiday saved"
-    })
-
-
-
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated, IsOwnerOrAdmin])
 def delete_emergency_holiday(request, id):
