@@ -8,7 +8,7 @@ class IsOwner(BasePermission):
             request.user and
             request.user.is_authenticated and
             request.user.role and
-            request.user.role.name == "owner"
+            request.user.role.name == "barber"
         )
 
 
@@ -28,7 +28,7 @@ class IsCustomer(BasePermission):
             request.user and
             request.user.is_authenticated and
             request.user.role and
-            request.user.role.name == "user"
+            request.user.role.name == "customer"
         )
     
 class IsOwnerOrAdmin(BasePermission):
@@ -37,5 +37,5 @@ class IsOwnerOrAdmin(BasePermission):
             request.user and
             request.user.is_authenticated and
             request.user.role is not None and
-            request.user.role.name in ["owner", "superadmin"]
+            request.user.role.name in ["barber", "superadmin"]
         )
