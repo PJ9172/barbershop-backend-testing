@@ -47,7 +47,7 @@ class EmergencyHoliday(models.Model):
 
     total_days = models.IntegerField(editable=False)
 
-    reason = models.CharField(max_length=255)
+    reason = models.CharField(max_length=255, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

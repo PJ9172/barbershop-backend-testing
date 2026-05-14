@@ -108,12 +108,28 @@ def save_settings(request):
             )
 
         # Emergency Holiday
-        if emergency_data:
-            start_date = datetime.strptime(emergency_data.get("start_date"), "%Y-%m-%d").date()
-            end_date = datetime.strptime(emergency_data.get("end_date"), "%Y-%m-%d").date()
+        if emergency_data.get("enabled"):
+
+            start_date_str = emergency_data.get("start_date")
+            end_date_str = emergency_data.get("end_date")
+
+            if not start_date_str or not end_date_str:
+                return Response({
+                    "error": "start_date and end_date are required when emergency holiday is enabled"
+                }, status=400)
+
+            start_date = datetime.strptime(
+                start_date_str,
+                "%Y-%m-%d"
+            ).date()
+
+            end_date = datetime.strptime(
+                end_date_str,
+                "%Y-%m-%d"
+            ).date()
 
             EmergencyHoliday.objects.create(
-                enabled=emergency_data.get("enabled", True),
+                enabled=True,
                 start_date=start_date,
                 end_date=end_date,
                 reason=emergency_data.get("reason", "")
