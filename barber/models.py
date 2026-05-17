@@ -1,5 +1,5 @@
 from django.db import models
-
+from accounts.models import User
 # Create your models here.
 
 class Category(models.Model):
@@ -51,7 +51,8 @@ class BarberShopSettings(models.Model):
     lunch_start_time = models.TimeField(null=True, blank=True)
     lunch_end_time = models.TimeField(null=True, blank=True)
 
-    slot_duration = models.IntegerField(default=60)
+    slot_duration = models.IntegerField(default=30)
+    slot_capacity = models.IntegerField(default=1)
 
     week_holiday = models.CharField(max_length=10)
 
@@ -85,3 +86,38 @@ class EmergencyHoliday(models.Model):
         ).days + 1
 
         super().save(*args, **kwargs)
+
+
+class Booking(models.Model):
+
+    STATUS_CHOICES = [
+        ("booked", "Booked"),
+        ("completed", "Completed"),
+        ("cancelled", "Cancelled")
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.CASCADE
+    )
+
+    booking_date = models.DateField()
+
+    slot_start_time = models.TimeField()
+    slot_end_time = models.TimeField()
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="booked"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "bookings"

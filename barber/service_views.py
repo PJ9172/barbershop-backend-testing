@@ -7,7 +7,38 @@ from .models import *
 
 # Create your views here.
 
+# Get specific service details
+@api_view(['GET'])
+def get_service_details(request, id):
 
+    try:
+        service = Service.objects.filter(
+            id=id,
+            is_active=True
+        ).first()
+
+        if not service:
+            return Response({
+                "error": "Service not found"
+            }, status=404)
+
+        return Response({
+            "id": service.id,
+            "name": service.name,
+            "description": service.description,
+            "cost": service.cost,
+            "duration": service.duration,
+            "category": {
+                "id": service.category.id,
+                "name": service.category.name
+            }
+        })
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
 
 # Get all services & categories
 @api_view(['GET'])
