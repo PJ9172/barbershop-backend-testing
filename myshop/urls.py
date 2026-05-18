@@ -31,5 +31,5 @@ urlpatterns = [
     path('api/services/', include('barber.service_urls')),
     path('api/settings/', include('barber.settings_urls')),
     path('api/bookings/',include('barber.bookings_urls')),
-    path('api/users/', include('users.urls'))
+    # path('api/users/', include('users.urls'))
 ]

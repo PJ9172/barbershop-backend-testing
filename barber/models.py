@@ -105,13 +105,14 @@ class Booking(models.Model):
 
     booking_date = models.DateField()
 
-    start_time = models.TimeField()
-    end_time = models.TimeField()
+    start_time = models.TimeField(default="00:00")
+    end_time = models.TimeField(default="00:00")
 
-    total_duration = models.IntegerField()
+    total_duration = models.IntegerField(default=0)
 
     total_amount = models.DecimalField(
         max_digits=10,
+        default=0.00,
         decimal_places=2
     )
 
