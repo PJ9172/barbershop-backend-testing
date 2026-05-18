@@ -101,15 +101,19 @@ class Booking(models.Model):
         on_delete=models.CASCADE
     )
 
-    service = models.ForeignKey(
-        Service,
-        on_delete=models.CASCADE
-    )
+    services = models.ManyToManyField(Service)
 
     booking_date = models.DateField()
 
-    slot_start_time = models.TimeField()
-    slot_end_time = models.TimeField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    total_duration = models.IntegerField()
+
+    total_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
 
     status = models.CharField(
         max_length=20,

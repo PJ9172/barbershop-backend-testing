@@ -476,7 +476,7 @@ def create_booking(request):
 # Get bookings list (future, past, today)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsOwnerOrAdmin])
-def owner_bookings_list(request):
+def get_owner_bookings_list(request):
 
     try:
 
@@ -512,7 +512,7 @@ def owner_bookings_list(request):
         # PAST BOOKINGS
         # -----------------------------------
 
-        elif booking_type == "past":
+        elif booking_type == "past" or booking_type == None:
 
             if not selected_date_str:
 
@@ -591,6 +591,77 @@ def owner_bookings_list(request):
 
                 "services":
                     service_names
+            })
+
+        return Response(response)
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
+
+# Get customer's bookings list (booked, completed, cancelled)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_customer_bookings_list(request):
+
+    try:
+
+        status_filter = request.GET.get("status")
+
+        bookings = Booking.objects.filter(
+            user=request.user
+        ).order_by("-booking_date", "-start_time")
+
+        if status_filter:
+            bookings = bookings.filter(
+                status=status_filter
+            )
+
+        response = []
+
+        for booking in bookings:
+
+            services = booking.services.all()
+
+            service_data = [
+                {
+                    "id": s.id,
+                    "name": s.name
+                }
+                for s in services
+            ]
+
+            response.append({
+
+                "booking_id": booking.id,
+
+                "booking_date":
+                    booking.booking_date.strftime(
+                        "%Y-%m-%d"
+                    ),
+
+                "start_time":
+                    booking.start_time.strftime(
+                        "%I:%M %p"
+                    ),
+
+                "end_time":
+                    booking.end_time.strftime(
+                        "%I:%M %p"
+                    ),
+
+                "status": booking.status,
+
+                "total_duration":
+                    booking.total_duration,
+
+                "total_amount":
+                    booking.total_amount,
+
+                "services": service_data
             })
 
         return Response(response)
