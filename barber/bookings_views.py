@@ -615,10 +615,16 @@ def get_customer_bookings_list(request):
             user=request.user
         ).order_by("-booking_date", "-start_time")
 
-        if status_filter:
+        if status_filter in ["booked", "completed", "cancelled"]:
             bookings = bookings.filter(
                 status=status_filter
             )
+        elif not status_filter:
+            pass
+        else:
+            return Response({
+                "error": "Invalid type"
+            }, status=400)
 
         response = []
 
@@ -665,6 +671,177 @@ def get_customer_bookings_list(request):
             })
 
         return Response(response)
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
+
+# Get home-dashboard
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsOwnerOrAdmin])
+def home_dashboard(request):
+
+    try:
+
+        selected_date_str = request.GET.get(
+            "selected_date"
+        )
+
+        selected_date = (
+            datetime.strptime(
+                selected_date_str,
+                "%Y-%m-%d"
+            ).date()
+
+            if selected_date_str
+            else date.today()
+        )
+
+        today = date.today()
+
+        # -----------------------------------
+        # TOTAL BOOKINGS
+        # -----------------------------------
+
+        total_bookings = Booking.objects.count()
+
+        # -----------------------------------
+        # CURRENT WEEK
+        # -----------------------------------
+
+        start_of_week = (
+            today -
+            timedelta(days=today.weekday())
+        )
+
+        settings_obj = BarberShopSettings.objects.first()
+
+        week_data = []
+
+        for i in range(7):
+
+            current_date = (
+                start_of_week +
+                timedelta(days=i)
+            )
+
+            booking_count = Booking.objects.filter(
+                booking_date=current_date,
+                status="booked"
+            ).count()
+
+            weekday_name = current_date.strftime("%a")
+
+            is_weekly_holiday = False
+
+            if (
+                settings_obj and
+                settings_obj.week_holiday
+            ):
+
+                is_weekly_holiday = (
+                    weekday_name.lower() ==
+                    settings_obj.week_holiday.lower()
+                )
+
+            is_emergency_holiday = (
+                EmergencyHoliday.objects.filter(
+                    enabled=True,
+                    start_date__lte=current_date,
+                    end_date__gte=current_date
+                ).exists()
+            )
+
+            week_data.append({
+
+                "date":
+                    current_date.strftime("%Y-%m-%d"),
+
+                "day":
+                    current_date.strftime("%a"),
+
+                "booking_count":
+                    booking_count,
+
+                "is_weekly_holiday":
+                    is_weekly_holiday,
+
+                "is_emergency_holiday":
+                    is_emergency_holiday
+            })
+
+        total_week_bookings = sum(
+            item["booking_count"]
+            for item in week_data
+        )
+
+        # -----------------------------------
+        # APPOINTMENTS
+        # -----------------------------------
+
+        selected_bookings = Booking.objects.filter(
+            booking_date=selected_date
+        ).order_by("start_time")
+
+        appointments = []
+
+        for booking in selected_bookings:
+
+            services = booking.services.all()
+
+            appointments.append({
+
+                "booking_id":
+                    booking.id,
+
+                "customer_name":
+                    f"{booking.user.first_name} "
+                    f"{booking.user.last_name}",
+
+                "services":
+                    [s.name for s in services],
+
+                "start_time":
+                    booking.start_time.strftime(
+                        "%I:%M %p"
+                    ),
+
+                "end_time":
+                    booking.end_time.strftime(
+                        "%I:%M %p"
+                    ),
+
+                "status":
+                    booking.status,
+
+                "total_amount":
+                    booking.total_amount
+            })
+
+        # -----------------------------------
+        # FINAL RESPONSE
+        # -----------------------------------
+
+        return Response({
+
+            "first_name":
+                request.user.first_name,
+
+            "total_bookings":
+                total_bookings,
+
+            "total_week_bookings":
+                total_week_bookings,
+
+            "week_data":
+                week_data,
+
+            "appointments":
+                appointments
+        })
 
     except Exception as e:
         print(traceback.format_exc())

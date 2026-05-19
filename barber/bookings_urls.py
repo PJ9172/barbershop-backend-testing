@@ -8,4 +8,5 @@ urlpatterns = [
     path('add/', create_booking),
     path('owner-bookings/', get_owner_bookings_list),
     path('customer-bookings/', get_customer_bookings_list),
+    path('home-dashboard/', home_dashboard),
 ]
