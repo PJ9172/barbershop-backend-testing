@@ -90,6 +90,11 @@ class EmergencyHoliday(models.Model):
 
 class Booking(models.Model):
 
+    BOOKING_TYPE_CHOICES = [
+        ("online", "Online"),
+        ("offline", "Offline")
+    ]
+
     STATUS_CHOICES = [
         ("booked", "Booked"),
         ("completed", "Completed"),
@@ -98,7 +103,22 @@ class Booking(models.Model):
 
     user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    customer_name = models.CharField(
+        max_length=100
+    )
+
+    customer_mobile_no = models.CharField(
+        max_length=15
+    )
+
+    customer_email = models.EmailField(
+        null=True,
+        blank=True
     )
 
     services = models.ManyToManyField(Service)
@@ -116,6 +136,12 @@ class Booking(models.Model):
         decimal_places=2
     )
 
+    booking_type = models.CharField(
+        max_length=20,
+        choices=BOOKING_TYPE_CHOICES,
+        default="online"
+    )
+
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
@@ -123,6 +149,14 @@ class Booking(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_bookings"
+    )
 
     class Meta:
         db_table = "bookings"

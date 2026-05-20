@@ -37,6 +37,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True
     )
 
+    email = models.EmailField(null=True, blank=True)
+
     is_active = models.BooleanField(default=True)  
     date_joined = models.DateTimeField(default=timezone.now)
 

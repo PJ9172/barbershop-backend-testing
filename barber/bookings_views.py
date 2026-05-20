@@ -327,13 +327,8 @@ def get_available_slots(request):
             "error": str(e)
         }, status=500)
     
-
-
-# Save a new booking
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def create_booking(request):
-
+# Helper function to save booking (used by both online and offline booking creation)
+def save_booking(request):
     try:
 
         data = request.data
@@ -350,11 +345,6 @@ def create_booking(request):
 
         service_ids = data.get("service_ids", [])
 
-        if not service_ids:
-            return Response({
-                "error": "No services selected"
-            }, status=400)
-
         services = Service.objects.filter(
             id__in=service_ids,
             is_active=True
@@ -363,6 +353,11 @@ def create_booking(request):
         if not services.exists():
             return Response({
                 "error": "Invalid services"
+            }, status=400)
+        
+        if len(service_ids) != services.count():
+            return Response({
+                "error": "Some services are invalid"
             }, status=400)
 
         # -----------------------------------
@@ -376,6 +371,21 @@ def create_booking(request):
         total_amount = sum(
             s.cost for s in services
         )
+
+        # -----------------------------------
+        # VALIDATE START TIME
+        # -----------------------------------
+
+        settings_obj = BarberShopSettings.objects.first()
+        if not settings_obj:
+            return Response({
+                "error": "Shop settings missing"
+            }, status=400)
+        
+        if start_time < settings_obj.opening_time:
+            return Response({
+                "error": "Booking cannot start before opening time"
+            }, status=400)
 
         # -----------------------------------
         # CALCULATE END TIME
@@ -392,6 +402,39 @@ def create_booking(request):
         )
 
         end_time = end_datetime.time()
+
+        if end_time > settings_obj.closing_time:
+            return Response({
+                "error": "Booking cannot end after closing time"
+            }, status=400)
+
+        # -----------------------------------
+        # OVERLAP CHECK
+        # -----------------------------------
+        if (
+            settings_obj.lunch_start_time and
+            settings_obj.lunch_end_time
+        ):
+
+            lunch_start = datetime.combine(
+                booking_date,
+                settings_obj.lunch_start_time
+            )
+
+            lunch_end = datetime.combine(
+                booking_date,
+                settings_obj.lunch_end_time
+            )
+
+            overlaps_lunch = (
+                start_datetime < lunch_end and
+                end_datetime > lunch_start
+            )
+
+            if overlaps_lunch:
+                return Response({
+                    "error": "Slot overlaps lunch time"
+                }, status=400)
 
         # -----------------------------------
         # OVERLAP CHECK
@@ -424,7 +467,6 @@ def create_booking(request):
             if overlaps:
                 conflict_count += 1
 
-        settings_obj = BarberShopSettings.objects.first()
 
         if (
             conflict_count >=
@@ -443,13 +485,20 @@ def create_booking(request):
             booking = Booking.objects.create(
                 user=request.user,
 
+                customer_name=(f"{request.user.first_name} "f"{request.user.last_name}").strip(),
+                customer_mobile_no=request.user.mobile_no,
+                customer_email=request.user.email if request.user.email else None,
+
                 booking_date=booking_date,
+                booking_type="offline" if request.path.endswith("offline-booking/") else "online",
 
                 start_time=start_time,
                 end_time=end_time,
 
                 total_duration=total_duration,
-                total_amount=total_amount
+                total_amount=total_amount,
+
+                created_by=request.user
             )
 
             booking.services.set(services)
@@ -471,6 +520,30 @@ def create_booking(request):
         }, status=500)
 
 
+# Save a new online booking
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_online_booking(request):
+    try:
+        return save_booking(request)
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
+
+# save a new offline booking
+@api_view(['POST'])
+@permission_classes([IsOwnerOrAdmin])
+def create_offline_booking(request):
+    try:
+        return save_booking(request)
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
 
 
 # Get bookings list (future, past, today)
