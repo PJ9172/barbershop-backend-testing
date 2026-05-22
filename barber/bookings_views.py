@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, UTC
 
 from django.db import transaction
 
@@ -326,6 +326,8 @@ def get_available_slots(request):
         return Response({
             "error": str(e)
         }, status=500)
+    
+
     
 # Helper function to save booking (used by both online and offline booking creation)
 def save_booking(request):
