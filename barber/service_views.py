@@ -87,6 +87,7 @@ def get_services(request):
 def add_category(request):
 
     try:
+        print("Request Data : ", request.data)        # Testing Purpose
         name = request.data.get("name")
         print("Category Name : ", name)        # Testing Purpose
         if not name:
