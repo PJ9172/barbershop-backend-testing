@@ -177,7 +177,7 @@ def reset_password(request):
     IsAuthenticated,
     IsOwnerOrAdmin
 ])
-def owner_profile(request):
+def get_owner_profile(request):
 
     try:
 

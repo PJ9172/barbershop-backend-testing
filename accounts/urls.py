@@ -9,4 +9,5 @@ urlpatterns = [
     path('profile/', user_profile),
     path('send-reset-otp/', send_reset_otp),
     path('reset-password/', reset_password),
+    path('get-owner-profile/', get_owner_profile),
 ]
