@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date, UTC
+from datetime import datetime, timedelta, date
 
 from django.db import transaction
 

@@ -125,9 +125,11 @@ def add_service(request):
 
     try:
         data = request.data
-
+        id=data.get("category_id")
+        if type(id) != int:
+            id = int(id)
         category = Category.objects.filter(
-            id=data.get("category_id")
+            id=id
         ).first()
 
         if not category:
