@@ -88,6 +88,7 @@ def add_category(request):
 
     try:
         name = request.data.get("name")
+        print("Category Name : ", name)        # Testing Purpose
         if not name:
             return Response({
                 "error": "Category name required"
@@ -125,13 +126,11 @@ def add_service(request):
 
     try:
         data = request.data
-        id=data.get("category_id")
-        if type(id) != int:
-            id = int(id)
+        print("Category_id : ", data.get("category_id"))        # Testing Purpose
+        print("Type of id : ", type(data.get("category_id")))
         category = Category.objects.filter(
-            id=id
+            id=data.get("category_id")
         ).first()
-
         if not category:
             return Response({
                 "error": "Category not found"
