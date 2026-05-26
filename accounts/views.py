@@ -1,11 +1,17 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from accounts.permissions import *
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
-from rest_framework import status
 from .models import User, Role
+from django.db.models import Sum
 from .otp_service import generate_otp, save_otp, validate_otp
 from .utils import send_otp
+from barber.models import (
+    Booking,
+    EmergencyHoliday
+)
+import traceback
 
 
 # send-otp api
@@ -162,3 +168,92 @@ def reset_password(request):
     user.save()
 
     return Response({"message": "Password reset successful"})
+
+
+
+# get owner's profile
+@api_view(['GET'])
+@permission_classes([
+    IsAuthenticated,
+    IsOwnerOrAdmin
+])
+def owner_profile(request):
+
+    try:
+
+        user = request.user
+
+        total_income = (
+            Booking.objects.filter(
+                status="completed"
+            ).aggregate(
+                total=Sum("total_amount")
+            )["total"] or 0
+        )
+
+        total_bookings = Booking.objects.count()
+
+        holidays = EmergencyHoliday.objects.all().order_by(
+            "-created_at"
+        )[:5]
+
+        holiday_data = []
+
+        for holiday in holidays:
+
+            holiday_data.append({
+
+                "id":
+                    holiday.id,
+
+                "start_date":
+                    holiday.start_date,
+
+                "end_date":
+                    holiday.end_date,
+
+                "reason":
+                    holiday.reason
+            })
+
+        return Response({
+
+            "user": {
+
+                "id":
+                    user.id,
+
+                "first_name":
+                    user.first_name,
+
+                "last_name":
+                    user.last_name,
+
+                "mobile_no":
+                    user.mobile_no,
+
+                "email":
+                    user.email,
+
+                "role":
+                    user.role.name
+            },
+
+            "analytics": {
+
+                "total_income":
+                    total_income,
+
+                "total_bookings":
+                    total_bookings
+            },
+
+            "emergency_holidays":
+                holiday_data
+        })
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
