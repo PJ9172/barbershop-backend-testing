@@ -10,4 +10,6 @@ urlpatterns = [
     path('get-owner-bookings/', get_owner_bookings_list),
     path('get-customer-bookings/', get_customer_bookings_list),
     path('home-dashboard/', home_dashboard),
+    path('owner-update-booking-status/<int:booking_id>/', update_booking_status_by_owner),
+    path('customer-cancel-booking-status/<int:booking_id>/', cancel_booking_by_customer),
 ]

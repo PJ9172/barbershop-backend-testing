@@ -330,7 +330,7 @@ def get_available_slots(request):
 
     
 # Helper function to save booking (used by both online and offline booking creation)
-def save_booking(request):
+def save_booking(request, booking_type="online"):
     try:
 
         data = request.data
@@ -482,17 +482,45 @@ def save_booking(request):
         # CREATE BOOKING
         # -----------------------------------
 
+        if booking_type == "offline":
+            if not data.get("customer_name"):
+                return Response({
+                    "error": "customer_name is required for offline booking"
+                }, status=400)
+
+            if not data.get("customer_mobile_no"):
+                return Response({
+                    "error": "customer_mobile_no is required for offline booking"
+                }, status=400)
+            
+            customer_name = data.get("customer_name")
+            customer_mobile_no = data.get("customer_mobile_no")
+            customer_email = data.get("customer_email", None)
+
         with transaction.atomic():
 
             booking = Booking.objects.create(
-                user=request.user,
+                user=request.user if booking_type == "online" else None,
 
-                customer_name=(f"{request.user.first_name} "f"{request.user.last_name}").strip(),
-                customer_mobile_no=request.user.mobile_no,
-                customer_email=request.user.email if request.user.email else None,
+                customer_name=(
+                    customer_name if booking_type == "offline"
+                    else (
+                        f"{request.user.first_name} "f"{request.user.last_name}"
+                    ).strip()
+                ),
+                customer_mobile_no=(
+                    customer_mobile_no 
+                    if booking_type == "offline" 
+                    else request.user.mobile_no
+                ),
+                customer_email=(
+                    customer_email 
+                    if booking_type == "offline" 
+                    else (request.user.email if request.user.email else None)
+                ),
 
                 booking_date=booking_date,
-                booking_type="offline" if request.path.endswith("offline-booking/") else "online",
+                booking_type=booking_type,
 
                 start_time=start_time,
                 end_time=end_time,
@@ -500,7 +528,7 @@ def save_booking(request):
                 total_duration=total_duration,
                 total_amount=total_amount,
 
-                created_by=request.user
+                created_by=request.user.role.name
             )
 
             booking.services.set(services)
@@ -527,7 +555,7 @@ def save_booking(request):
 @permission_classes([IsAuthenticated])
 def create_online_booking(request):
     try:
-        return save_booking(request)
+        return save_booking(request, booking_type="online")
     except Exception as e:
         print(traceback.format_exc())
         return Response({
@@ -540,7 +568,7 @@ def create_online_booking(request):
 @permission_classes([IsOwnerOrAdmin])
 def create_offline_booking(request):
     try:
-        return save_booking(request)
+        return save_booking(request, booking_type="offline")
     except Exception as e:
         print(traceback.format_exc())
         return Response({
@@ -634,11 +662,11 @@ def get_owner_bookings_list(request):
                 "booking_id": booking.id,
 
                 "customer_name":
-                    f"{booking.user.first_name} "
-                    f"{booking.user.last_name}",
+                    f"{booking.user.first_name} " if booking.user else f"{booking.customer_name}" +
+                    f"{booking.user.last_name}" if booking.user else "",
 
                 "mobile_no":
-                    booking.user.mobile_no,
+                    booking.user.mobile_no if booking.user else booking.customer_mobile_no,
 
                 "booking_date":
                     booking.booking_date.strftime(
@@ -873,8 +901,8 @@ def home_dashboard(request):
                     booking.id,
 
                 "customer_name":
-                    f"{booking.user.first_name} "
-                    f"{booking.user.last_name}",
+                    f"{booking.user.first_name} " if booking.user else f"{booking.customer_name}" +
+                    f"{booking.user.last_name}" if booking.user else "",
 
                 "services":
                     [s.name for s in services],
@@ -919,6 +947,122 @@ def home_dashboard(request):
         })
 
     except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
+
+
+# Update booking status as completed or cancelled
+@api_view(['PATCH'])
+@permission_classes([
+    IsAuthenticated,
+    IsOwnerOrAdmin
+])
+def update_booking_status_by_owner(request, booking_id):
+
+    try:
+
+        booking = Booking.objects.filter(
+            id=booking_id
+        ).first()
+
+        if not booking:
+
+            return Response({
+                "error": "Booking not found"
+            }, status=404)
+    
+        status = request.GET.get("status")
+
+        if status not in ["completed", "cancelled"]:
+            return Response({
+                "error": "Invalid status"
+            }, status=400)
+        
+        if status == "cancelled":
+
+            if booking.status == "cancelled":
+
+                return Response({
+                    "error": "Booking already cancelled"
+                }, status=400)
+
+            booking.status = "cancelled"
+            booking.save()
+
+            return Response({
+                "message": "Booking marked as cancelled"
+            })
+
+        if status == "completed":
+            if booking.status == "completed":
+                return Response({
+                    "error": "Booking already completed"
+                }, status=400)
+
+            booking.status = "completed"
+            booking.save()
+
+            return Response({
+                "message": "Booking marked as completed"
+            })
+
+    except Exception as e:
+        print(traceback.format_exc())
+
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
+
+
+# Customer cancel booking status
+@api_view(['PATCH'])
+@permission_classes([
+    IsAuthenticated,
+    IsCustomer
+])
+def cancel_booking_by_customer(request, booking_id):
+    try:
+
+        booking = Booking.objects.filter(
+            id=booking_id,
+            user_id=request.user.id
+        ).first()
+
+
+        if not booking:
+            return Response({
+                "error": "Booking not found"
+            }, status=404)
+
+        if booking.status == "completed":
+            return Response({
+                "error": "Completed booking cannot be cancelled"
+            }, status=400)
+
+        if booking.status == "cancelled":
+            return Response({
+                "error": "Booking already cancelled"
+            }, status=400)
+
+        # Prevent cancelling past bookings
+        if booking.booking_date < date.today():
+            return Response({
+                "error": "Past bookings cannot be cancelled"
+            }, status=400)
+
+        booking.status = "cancelled"
+        booking.save()
+
+        return Response({
+            "message": "Booking cancelled successfully"
+        })
+
+    except Exception as e:
+
         print(traceback.format_exc())
         return Response({
             "error": str(e)

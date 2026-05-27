@@ -171,7 +171,7 @@ def reset_password(request):
 
 
 
-# get owner's profile
+# get owner's profile tab - used by owner and admin to view owner details and analytics
 @api_view(['GET'])
 @permission_classes([
     IsAuthenticated,
@@ -191,7 +191,9 @@ def get_owner_profile(request):
             )["total"] or 0
         )
 
-        total_bookings = Booking.objects.count()
+        total_bookings = Booking.objects.filter(
+            status="completed"
+        ).count()
 
         holidays = EmergencyHoliday.objects.all().order_by(
             "-created_at"
@@ -250,6 +252,84 @@ def get_owner_profile(request):
 
             "emergency_holidays":
                 holiday_data
+        })
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
+
+
+# get customer profile tab - used by customer only to view customer details and analytics
+@api_view(['GET'])
+@permission_classes([
+    IsAuthenticated,
+    IsCustomer
+])
+def get_customer_profile(request):
+
+    try:
+
+        user = request.user
+
+        total_bookings = Booking.objects.filter(
+            user_id=user.id
+        ).count()
+
+        completed_bookings = Booking.objects.filter(
+            user_id=user.id,
+            status="completed"
+        ).count()
+
+        cancelled_bookings = Booking.objects.filter(
+            user_id=user.id,
+            status="cancelled"
+        ).count()
+
+        booked_bookings = Booking.objects.filter(
+            user_id=user.id,
+            status="booked"
+        ).count()
+
+        return Response({
+
+            "user": {
+
+                "id":
+                    user.id,
+
+                "first_name":
+                    user.first_name,
+
+                "last_name":
+                    user.last_name,
+
+                "mobile_no":
+                    user.mobile_no,
+
+                "email":
+                    user.email,
+
+                "role":
+                    user.role.name
+            },
+
+            "analytics": {
+
+                "total_bookings":
+                    total_bookings,
+
+                "completed_bookings":
+                    completed_bookings,
+
+                "cancelled_bookings":
+                    cancelled_bookings,
+
+                "booked_bookings":
+                    booked_bookings
+            }
         })
 
     except Exception as e:
