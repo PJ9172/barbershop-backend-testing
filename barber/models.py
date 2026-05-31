@@ -101,6 +101,12 @@ class Booking(models.Model):
         ("cancelled", "Cancelled")
     ]
 
+    PAYMENT_METHOD_CHOICES = [
+    ("cash", "Cash"),
+    ("upi", "UPI"),
+    ("card", "Card"),
+]
+
     user = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -148,6 +154,12 @@ class Booking(models.Model):
         default="booked"
     )
 
+    payment_method = models.CharField(
+    max_length=20,
+    choices=PAYMENT_METHOD_CHOICES,
+    default="cash"
+)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     created_by = models.ForeignKey(

@@ -362,6 +362,23 @@ def save_booking(request, booking_type="online"):
                 "error": "Some services are invalid"
             }, status=400)
 
+
+        # -----------------------------------
+        # PAYMENT METHOD VALIDATION
+        # -----------------------------------
+
+        payment_method = data.get("payment_method", "cash")
+
+        valid_payment_methods = [
+            choice[0] for choice in Booking.PAYMENT_METHOD_CHOICES
+        ]
+
+        if payment_method not in valid_payment_methods:
+            return Response({
+                "error": "Invalid payment method. Allowed values: cash, upi, card"
+            }, status=400)
+
+
         # -----------------------------------
         # CALCULATE TOTALS
         # -----------------------------------
@@ -528,6 +545,8 @@ def save_booking(request, booking_type="online"):
                 total_duration=total_duration,
                 total_amount=total_amount,
 
+                payment_method=payment_method,
+
                 created_by=request.user.role.name
             )
 
@@ -540,7 +559,9 @@ def save_booking(request, booking_type="online"):
 
             "total_duration": total_duration,
 
-            "total_amount": total_amount
+            "total_amount": total_amount,
+
+            "payment_method": payment_method
         })
 
     except Exception as e:
@@ -1062,7 +1083,88 @@ def cancel_booking_by_customer(request, booking_id):
         })
 
     except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
 
+# Get customer's card details for a specific booking
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsOwnerOrAdmin])
+def get_customer_card_details(request, booking_id):
+
+    try:
+
+        booking = Booking.objects.filter(
+            id=booking_id
+        ).prefetch_related(
+            "services",
+            "user" if Booking.booking_type == "online" else None
+        ).first()
+
+        if not booking:
+            return Response({
+                "error": "Booking not found"
+            }, status=404)
+
+        services = []
+
+        for service in booking.services.all():
+
+            services.append({
+                "id": service.id,
+                "name": service.name,
+                "duration": service.duration,
+                "cost": float(service.cost)
+            })
+
+        if booking.user:
+            customer_name = f"{booking.user.first_name} {booking.user.last_name}".strip()
+            customer_mobile_no = booking.user.mobile_no
+            customer_email = booking.user.email
+        else:
+            customer_name = booking.customer_name
+            customer_mobile_no = booking.customer_mobile_no
+            customer_email = booking.customer_email
+
+        response = {
+
+            "booking_id": booking.id,
+
+            "customer": {
+                "name": customer_name,
+                "mobile_no": customer_mobile_no,
+                "email": customer_email
+            },
+
+            "booking": {
+
+                "date": booking.booking_date,
+
+                "start_time": booking.start_time.strftime(
+                    "%I:%M %p"
+                ),
+
+                "end_time": booking.end_time.strftime(
+                    "%I:%M %p"
+                ),
+
+                "status": booking.status,
+
+                "payment_method":
+                    booking.payment_method,
+
+                "total_amount":
+                    float(booking.total_amount)
+            },
+
+            "services": services
+        }
+
+        return Response(response)
+
+    except Exception as e:
         print(traceback.format_exc())
         return Response({
             "error": str(e)
