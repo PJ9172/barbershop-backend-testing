@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .bookings_views import *
+from .dashboard_views import owner_dashboard
 
 urlpatterns = [
     # Customer related endpoints
@@ -14,6 +15,6 @@ urlpatterns = [
     path('add-offline-booking/', create_offline_booking),
     path('get-owner-bookings/', get_owner_bookings_list),
     path('get-customer-card-details/<int:booking_id>/', get_customer_card_details),
-    path('home-dashboard/', home_dashboard),
+    path('owner-dashboard/', owner_dashboard),
     path('owner-update-booking-status/<int:booking_id>/', update_booking_status_by_owner),
 ]
