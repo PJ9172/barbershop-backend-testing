@@ -2,6 +2,8 @@ from django.db import models
 from accounts.models import User
 # Create your models here.
 
+
+# Category and Service models
 class Category(models.Model):
 
     name = models.CharField(max_length=100, unique=True, default="General")
@@ -43,6 +45,7 @@ class Service(models.Model):
     
 
 
+# Settings and Holiday models
 class BarberShopSettings(models.Model):
 
     opening_time = models.TimeField()
@@ -61,8 +64,6 @@ class BarberShopSettings(models.Model):
     class Meta:
         db_table = "barber_shop_settings"
 
-
-from datetime import timedelta
 
 class EmergencyHoliday(models.Model):
 
@@ -88,6 +89,7 @@ class EmergencyHoliday(models.Model):
         super().save(*args, **kwargs)
 
 
+# Booking model
 class Booking(models.Model):
 
     BOOKING_TYPE_CHOICES = [
@@ -172,3 +174,46 @@ class Booking(models.Model):
 
     class Meta:
         db_table = "bookings"
+
+
+
+# Coupon model
+class Coupon(models.Model):
+
+    DISCOUNT_TYPE_CHOICES = [
+        ("percentage", "Percentage"),
+        ("flat", "Flat")
+    ]
+
+    code = models.CharField(
+        max_length=50,
+        unique=True
+    )
+
+    discount_type = models.CharField(
+        max_length=20,
+        choices=DISCOUNT_TYPE_CHOICES
+    )
+
+    discount_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    min_order_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    valid_till = models.DateField()
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return self.code
