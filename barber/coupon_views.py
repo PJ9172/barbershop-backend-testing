@@ -53,8 +53,83 @@ def create_coupon(request):
             }
         })
     except Exception as e:
-        traceback.print_exc()
-        return Response(
-            {"error": "An error occurred while creating the coupon"},
-            status=500
-        )
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
+
+# Get coupons list
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsOwnerOrAdmin])
+def get_coupons_list(request):
+
+    try:
+        coupons = Coupon.objects.all().order_by("-created_at")
+
+        coupons_data = [
+            {
+                "id": coupon.id,
+                "code": coupon.code,
+                "discount_type": coupon.discount_type,
+                "discount_value": coupon.discount_value,
+                "minimum_order_value": coupon.min_order_value,
+                "valid_till": coupon.valid_till,
+                "is_active": coupon.is_active
+            }
+            for coupon in coupons
+        ]
+
+        return Response({
+            "coupons": coupons_data
+        })
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
+
+# Activate/Deactivate coupon
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsOwnerOrAdmin])
+def update_coupon(request, coupon_id):
+
+    try:
+        action = request.data.get("action")
+
+        if action not in ["active", "inactive"]:
+            return Response(
+                {"error": "Invalid action"},
+                status=400
+            )
+
+        try:
+            coupon = Coupon.objects.get(id=coupon_id)
+        except Coupon.DoesNotExist:
+            return Response(
+                {"error": "Coupon not found"},
+                status=404
+            )
+
+        coupon.is_active = True if action == "active" else False
+        coupon.save()
+
+        return Response({
+            "message": f"Coupon {'activated' if coupon.is_active else 'deactivated'} successfully",
+            "coupon": {
+                "id": coupon.id,
+                "code": coupon.code,
+                "discount_type": coupon.discount_type,
+                "discount_value": coupon.discount_value,
+                "minimum_order_value": coupon.min_order_value,
+                "valid_till": coupon.valid_till,
+                "is_active": coupon.is_active
+            }
+        })
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+    
