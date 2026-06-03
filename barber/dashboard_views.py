@@ -89,8 +89,7 @@ def owner_dashboard(request):
             )
 
             booking_count = Booking.objects.filter(
-                booking_date=current_date,
-                status="booked"
+                booking_date=current_date
             ).count()
 
             weekday_name = current_date.strftime("%a")
