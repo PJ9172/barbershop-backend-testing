@@ -1,6 +1,10 @@
 import requests
+from dotenv import load_dotenv
+import os
 
-FAST2SMS_API_KEY = "yJmo6SXJldT3sUR3jZd1s89xPi2F0L6yJAVP6EK14sKVdurlc8i1pCmRPYML"
+load_dotenv()
+
+FAST2SMS_API_KEY = os.getenv("FAST2SMS_API_KEY")
 
 def send_otp(mobile, otp):
     url = "https://www.fast2sms.com/dev/bulkV2"

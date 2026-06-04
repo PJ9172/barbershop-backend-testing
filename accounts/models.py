@@ -39,6 +39,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     email = models.EmailField(null=True, blank=True)
 
+    shop_name = models.CharField(max_length=255, null=True, blank=True)
+
     is_active = models.BooleanField(default=True)  
     date_joined = models.DateTimeField(default=timezone.now)
 

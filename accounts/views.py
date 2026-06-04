@@ -117,7 +117,8 @@ def user_profile(request):
         "last_name": request.user.last_name,
         "date_joined": request.user.date_joined,
         "role_id": request.user.role.id if request.user.role else None,
-        "role_name": request.user.role.name if request.user.role else None
+        "role_name": request.user.role.name if request.user.role else None,
+        "shop_name": request.user.shop_name if request.user.shop_name else None
     })
 
 
