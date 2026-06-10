@@ -7,6 +7,10 @@ from .models import User, Role
 from django.db.models import Sum
 from .otp_service import generate_otp, save_otp, validate_otp
 from .utils import send_otp
+
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from .email import send_email, send_profile_update_email
 from barber.models import (
     Booking,
     EmergencyHoliday
@@ -122,8 +126,87 @@ def user_profile(request):
     })
 
 
-#  send-reset-otp
+# update profile api
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_profile(request):
 
+    try:
+        user = request.user
+        old_email = user.email
+
+        first_name = request.data.get("first_name")
+
+        last_name = request.data.get("last_name")
+
+        email = request.data.get("email")
+
+        # -------------------------
+        # First Name
+        # -------------------------
+
+        if first_name:
+            user.first_name = first_name
+
+        # -------------------------
+        # Last Name
+        # -------------------------
+
+        if last_name:
+            user.last_name = last_name
+
+        # -------------------------
+        # Email Validation
+        # -------------------------
+
+        if email:
+
+            try:
+                validate_email(email)
+
+            except ValidationError:
+                return Response({
+                    "error": "Invalid email address"
+                }, status=400)
+
+            existing_user = User.objects.filter(
+                email=email
+            ).exclude(
+                id=user.id
+            ).first()
+
+            if existing_user:
+
+                return Response({
+                    "error": "Email already exists"
+                }, status=400)
+
+            user.email = email
+
+        user.save()
+
+        # -------------------------
+        # Send Welcome Mail
+        # -------------------------
+
+        if (email and old_email is None):
+            send_email(email, user.first_name)
+
+        else:
+            send_profile_update_email(user.email, user.first_name)
+
+        return Response({
+            "message": "Profile updated successfully"
+        })
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return Response({
+            "error": str(e)
+        }, status=500)
+
+
+#  send-reset-otp
 @api_view(['POST'])
 def send_reset_otp(request):
     mobile = request.data.get("mobile_no")

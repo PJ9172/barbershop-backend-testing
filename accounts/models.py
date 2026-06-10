@@ -37,7 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True
     )
 
-    email = models.EmailField(null=True, blank=True)
+    email = models.EmailField(null=True, blank=True, unique=True)
 
     shop_name = models.CharField(max_length=255, null=True, blank=True)
 
